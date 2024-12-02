@@ -1,5 +1,10 @@
 {
   "dependencies": {
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "dotenv": "^16.4.1",
+    "jest-junit": "^16.0.0"
+  },
+  "scripts": {
+    "test:staging": "NODE_ENV=staging yarn jest"
   }
 }

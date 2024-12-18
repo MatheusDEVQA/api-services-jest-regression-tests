@@ -12,8 +12,7 @@
   "files": [
     "lib"
   ],
-  "devDependencies": {
-    
+  "devDependencies": {    
     "@types/supertest": "^6.0.2",
     "@types/jest": "^29.5.12",
     "supertest": "^7.0.0",
@@ -21,7 +20,8 @@
     "jest-ctrf-json-reporter": "^0.0.8",
     "@swc/jest": "^0.2.36",
     "typescript": "^5.3.3",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "prettier": "3.3.3"
   },
   "dependencies": {
     "jest": "^29.7.0",
@@ -29,6 +29,7 @@
     "jest-junit": "^16.0.0"
   },
   "scripts": {
-    "test:staging": "NODE_ENV=staging yarn jest"
+    "test:staging": "NODE_ENV=staging yarn jest",    
+    "format": "prettier . --write ."
   }
 }

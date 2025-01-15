@@ -1,12 +1,9 @@
-import { get } from '../commons/requestBuilder'
+import { User } from '@jsonObject/userTest/userObject';
+import { get } from '../commons/requestBuilder';
 
 const CLIENT = process.env.CLIENT_ID;
 
-interface User {
-    name: string
-    age: number
-    address: string
-}
+
 
 interface UserResponse {
     statusCode: number;

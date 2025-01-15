@@ -4,6 +4,13 @@ import type { Config } from '@jest/types';
 require('dotenv').config({ path: `.env.${process.env.NODE_ENV}` });
 
 const config: Config.InitialOptions = {
+  moduleNameMapper: {
+    '@jsonObjects/(.*)': '<rootDir>/src/jsonObjects/$1',
+    '@requests/(.*)': '<rootDir>/src/requests/$1',
+    '@tests/(.*)': '<rootDir>/src/tests/$1',
+    '@utils/(.*)': '<rootDir>/src/utils/$1',
+  },
+  moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
     '^.+\\.tsx?$': '@swc/jest',
   },

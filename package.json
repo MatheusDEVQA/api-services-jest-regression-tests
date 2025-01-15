@@ -30,6 +30,7 @@
   },
   "scripts": {
     "test:staging": "NODE_ENV=staging yarn jest",    
-    "format": "prettier . --write ."
+    "format": "prettier . --write .",
+    "format-check": "prettier . --check"
   }
 }

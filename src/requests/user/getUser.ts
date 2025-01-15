@@ -1,13 +1,11 @@
-import { User } from '@jsonObject/userTest/userObject';
-import { get } from '../commons/requestBuilder';
+import { userObject } from '@jsonObject/userTest/userObject';
+import { get } from '@requests/commons/requestBuilder';
 
 const CLIENT = process.env.CLIENT_ID;
 
-
-
 interface UserResponse {
     statusCode: number;
-    body: User;
+    body: userObject;
 }
 async function getUser(id:string): Promise<UserResponse> {
     const headers = {
@@ -18,7 +16,7 @@ async function getUser(id:string): Promise<UserResponse> {
 
     return {
         statusCode: response.status,
-        body: response.body as User
+        body: response.body as userObject
     }
 }
 

@@ -1,6 +1,6 @@
 import { document } from "./documentObject"
 
-export interface User {
+export interface userObject {
     name: string
     age: number
     address: string

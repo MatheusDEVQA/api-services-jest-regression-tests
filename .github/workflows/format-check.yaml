@@ -1,0 +1,38 @@
+name: Checks code format
+
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  check-format:
+    name: Checks code format
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: 'MatheusDEVQA/api-services-jest-regression-tests'
+          ssh-key: ${{ secrets.ORG_PRIVATE_SSH_KEY }}
+      - name: install prettier
+        run: yarn add --dev prettier -W
+      - name: checks code format
+        id: format-check
+        run: yarn format-check
+  sonarcloud:
+    name: SonarCloud
+    needs: check-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  run-regression-tests:
+    needs: sonarcloud
+    uses: ./.github/workflows/regression-tests-all.yml

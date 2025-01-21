@@ -1,0 +1,142 @@
+name: 'API Bankly Jest Regression Tests'
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: false
+      continue-on-error:
+        required: false
+        type: boolean
+        default: false
+      contexts:
+        required: false
+        type: string
+        default: "['userTest']"
+      runs-on:
+        type: string
+        required: true
+    outputs:
+      report:
+        description: 'report url'
+        value: ${{ jobs.run-tests.outputs.url_html }}
+      slack_failure_message:
+        description: 'slack report status'
+        value: ${{ jobs.run-tests.outputs.slack_failure_message }}
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: string
+        required: true
+      continue-on-error:
+        required: false
+        type: boolean
+        default: false
+      contexts:
+        required: false
+        type: string
+        default: "['userTest']"
+      runs-on:
+        type: string
+        required: true
+
+jobs:
+  run-tests:
+    continue-on-error: ${{ inputs.continue-on-error }}
+    strategy:
+      fail-fast: false
+      matrix:
+        context: ${{ fromJson(inputs.contexts) }}
+    runs-on: ${{ fromJson(inputs.runs-on) }}
+    name: ${{ matrix.context }}-${{ inputs.environment }} regression test jest
+    timeout-minutes: 30
+    outputs:
+      url_html: ${{ steps.test_report.outputs.url_html }}
+      slack_failure_message: ${{ steps.setting_var_for_slack.outputs.slack_failure_message }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: 'MatheusDEVQA/api-services-jest-regression-tests'
+          ssh-key: ${{ secrets.ORG_PRIVATE_SSH_KEY }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Setup yarn
+        run: npm install -g yarn
+
+      - name: Install dependencies
+        run: |
+          cd packages/api-bankly
+          yarn install --frozen-lockfile
+
+      - name: Run ${{ matrix.context }}-${{ inputs.environment }} tests
+        uses: nick-fields/retry@v3
+        with:
+          timeout_seconds: 5000
+          max_attempts: 2
+          retry_on: error
+          command: |
+            context=$(echo ${{ matrix.context }} | awk -F '-' '{for(i=1;i<NF;i++) printf "%s%s", $i, (i==NF-1) ? "\n" : "-"}')
+            system=$(echo ${{ matrix.context }} | awk -F '-' '{print $NF}')
+            echo "Context: $context"
+            echo "System: $system"
+            yarn nx test:${{ inputs.environment }} api-bankly --testPathPattern=src/tests/$context/$system
+
+      - name: Generate Test Report
+        id: test_report
+        uses: dorny/test-reporter@v1.9.1
+        if: success() || failure()
+        with:
+          name: ${{ matrix.context }}-${{ inputs.environment }} test report jest
+          path: reports/*.xml
+          reporter: jest-junit
+          fail-on-error: false
+
+      - name: Extract report data
+        id: extract-report
+        if: success() || failure()
+        run: |
+          OUTPUT=$(jq -c -r '{ "${{ matrix.context }}":{"assertions":{"total": .results.summary.tests, "failed": .results.summary.failed }, "url": "${{ steps.test_report.outputs.url_html }}" }}' reports/report.json)
+          echo "Report data: $OUTPUT"
+          echo "data=$OUTPUT" >> "$GITHUB_OUTPUT"
+
+      - uses: hoverkraft-tech/ci-github-common/actions/set-matrix-output@main
+        if: success()
+        with:
+          value: '${{ steps.extract-report.outputs.data }}'
+          artifact-name: '${{ inputs.environment }}-passed-tests-#${{ github.run_attempt }}'
+
+      - uses: hoverkraft-tech/ci-github-common/actions/set-matrix-output@main
+        if: failure()
+        with:
+          value: '${{ steps.extract-report.outputs.data }}'
+          artifact-name: '${{ inputs.environment }}-failed-tests-#${{ github.run_attempt }}'
+
+      - uses: hoverkraft-tech/ci-github-common/actions/set-matrix-output@main
+        id: tests-result
+        if: (success() || failure()) && (inputs.user-id != '')
+        with:
+          value: '${{ steps.extract-report.outputs.data }}'
+          artifact-name: '${{ inputs.environment }}-tests-#${{ github.run_attempt }}'
+
+      - name: Create report summary
+        id: report-summary
+        if: (success() || failure()) && github.repository != 'MatheusDEVQA/api-services-jest-regression-tests'
+        run: |
+          report_url=${{ steps.test_report.outputs.url_html }}
+          context_environment=${{ matrix.context }}-${{ inputs.environment }}
+          report_url_link="- Reports url: [$context_environment]($report_url)"
+
+          echo '## Tests Report' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo $report_url_link >> $GITHUB_STEP_SUMMARY
+
+      - name: Setting variable to use in Slack Response
+        id: setting_var_for_slack
+        if: failure()
+        run: echo "slack_failure_message=true" >> "$GITHUB_OUTPUT"
